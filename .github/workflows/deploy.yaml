@@ -37,6 +37,10 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
+      # Installs the missing ESLint plugin required for linting React code
+      - name: Install ESLint React Plugin
+        run: npm install eslint-plugin-react
+
       # Runs the linter to check for code quality issues
       - name: Run linter
         run: npm run lint
@@ -90,7 +94,8 @@ jobs:
           aws-region: ${{ secrets.AWS_REGION }}         # Stored in GitHub Secrets
 
       # Deploys the built application to the S3 bucket
-      # It uses the same command from your package.json but without the build step
       - name: Deploy to S3
+        # The bucket name is stored as a secret in your repository settings
+        # Set the AWS_S3_BUCKET_NAME secret to 'www.strangetable.com'
         run: aws s3 sync dist/ s3://${{ secrets.AWS_S3_BUCKET_NAME }} --delete
 
