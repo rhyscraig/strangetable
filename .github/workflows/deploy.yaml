@@ -1,0 +1,86 @@
+# .github/workflows/deploy.yaml
+
+name: CI/CD Pipeline
+
+# Controls when the action will run.
+on:
+  push:
+    branches:
+      - main        # Runs on pushes to the main branch
+      - 'feature/**' # Runs on pushes to any branch starting with 'feature/'
+
+jobs:
+  # This job runs for feature branches to validate the code
+  validate-feature-branch:
+    # This condition ensures the job ONLY runs for branches starting with 'feature/'
+    if: startsWith(github.ref, 'refs/heads/feature/')
+    runs-on: ubuntu-latest
+
+    steps:
+      # Checks-out your repository under $GITHUB_WORKSPACE, so your job can access it
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      # Sets up Node.js environment
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20' # Use a specific LTS version
+          cache: 'npm' # Cache npm dependencies for faster builds
+
+      # Installs all project dependencies
+      - name: Install dependencies
+        run: npm ci
+
+      # Runs the linter to check for code quality issues
+      - name: Run linter
+        run: npm run lint
+
+      # Runs the build process to ensure the project compiles without errors
+      - name: Build project
+        run: npm run build
+
+  # This job runs ONLY for the main branch to deploy the application
+  deploy-to-s3:
+    # This condition ensures the job ONLY runs for pushes to the main branch
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+
+    # These permissions are required to configure AWS credentials
+    permissions:
+      id-token: write
+      contents: read
+
+    steps:
+      # Checks-out your repository
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      # Sets up Node.js environment
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      # Installs dependencies
+      - name: Install dependencies
+        run: npm ci
+
+      # Builds the application for production
+      - name: Build application
+        run: npm run build
+
+      # Configures AWS credentials using OpenID Connect (OIDC)
+      # This is the modern, secure way to authenticate with AWS from GitHub Actions
+      - name: Configure AWS Credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ secrets.AWS_IAM_ROLE_ARN }} # Stored in GitHub Secrets
+          aws-region: ${{ secrets.AWS_REGION }}         # Stored in GitHub Secrets
+
+      # Deploys the built application to the S3 bucket
+      # It uses the same command from your package.json but without the build step
+      - name: Deploy to S3
+        run: aws s3 sync dist/ s3://${{ secrets.AWS_S3_BUCKET_NAME }} --delete
+
