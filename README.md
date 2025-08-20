@@ -1,0 +1,2 @@
+# strangetable
+Strangetable reactjs app
