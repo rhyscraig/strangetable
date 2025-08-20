@@ -33,13 +33,10 @@ jobs:
           cache: 'npm'
           cache-dependency-path: youtube-channel-app/package-lock.json # Specify path to lock file
 
-      # Installs all project dependencies
+      # Installs all project dependencies from the lock file.
+      # Ensure devDependencies (like eslint-plugin-react) are in your package.json
       - name: Install dependencies
         run: npm ci
-
-      # Installs the missing ESLint plugin required for linting React code
-      - name: Install ESLint React Plugin
-        run: npm install eslint-plugin-react
 
       # Runs the linter to check for code quality issues
       - name: Run linter
