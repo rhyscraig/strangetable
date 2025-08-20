@@ -15,6 +15,10 @@ jobs:
     # This condition ensures the job ONLY runs for branches starting with 'feature/'
     if: startsWith(github.ref, 'refs/heads/feature/')
     runs-on: ubuntu-latest
+    # Sets the default working directory for all steps in this job
+    defaults:
+      run:
+        working-directory: ./youtube-channel-app
 
     steps:
       # Checks-out your repository under $GITHUB_WORKSPACE, so your job can access it
@@ -26,9 +30,11 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: '20' # Use a specific LTS version
-          cache: 'npm' # Cache npm dependencies for faster builds
+          cache: 'npm'
+          cache-dependency-path: youtube-channel-app/package-lock.json # Specify path to lock file
 
-      # Installs all project dependencies
+      # Installs all project dependencies from the lock file.
+      # Ensure devDependencies (like eslint-plugin-react) are in your package.json
       - name: Install dependencies
         run: npm ci
 
@@ -45,6 +51,10 @@ jobs:
     # This condition ensures the job ONLY runs for pushes to the main branch
     if: github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
+    # Sets the default working directory for all steps in this job
+    defaults:
+      run:
+        working-directory: ./youtube-channel-app
 
     # These permissions are required to configure AWS credentials
     permissions:
@@ -62,6 +72,7 @@ jobs:
         with:
           node-version: '20'
           cache: 'npm'
+          cache-dependency-path: youtube-channel-app/package-lock.json # Specify path to lock file
 
       # Installs dependencies
       - name: Install dependencies
@@ -80,7 +91,8 @@ jobs:
           aws-region: ${{ secrets.AWS_REGION }}         # Stored in GitHub Secrets
 
       # Deploys the built application to the S3 bucket
-      # It uses the same command from your package.json but without the build step
       - name: Deploy to S3
+        # The bucket name is stored as a secret in your repository settings
+        # Set the AWS_S3_BUCKET_NAME secret to 'www.strangetable.com'
         run: aws s3 sync dist/ s3://${{ secrets.AWS_S3_BUCKET_NAME }} --delete
 
